@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>자이푸르 역사 탐험 가이드: 핑크 시티의 유산</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Chosen Palette: Jaipur Pink & Royal Heritage -->
+    <!-- 
+        Primary Background: #FFF8F0 (Warm Off-white/Sandstone)
+        Secondary Background: #FFE4E1 (Misty Rose - subtle pink nod)
+        Accent Color: #E67E73 (Terracotta/Jaipur Pink)
+        Text Color: #4A3B32 (Dark Brown/Sepia for historical feel)
+        Highlight: #D4AF37 (Gold/Brass for royal accents)
+    -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        jaipur: {
+                            bg: '#FFF8F0',
+                            light: '#FFE4E1',
+                            pink: '#CD5C5C', // Indian Red/Terracotta
+                            dark: '#4A3B32',
+                            gold: '#D4AF37',
+                            accent: '#E9967A'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['"Noto Sans KR"', 'sans-serif'],
+                        serif: ['"Noto Serif KR"', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #FFF8F0;
+            color: #4A3B32;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        .card-shadow {
+            box-shadow: 0 4px 6px -1px rgba(74, 59, 50, 0.1), 0 2px 4px -1px rgba(74, 59, 50, 0.06);
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #FFF8F0; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #CD5C5C; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #A52A2A; 
+        }
+    </style>
+
+    <!-- Application Structure Plan: 
+         1. Hero Section: Immersion into the "Pink City" concept.
+         2. Dashboard Layout: Two-column layout on desktop.
+            - Left Column: Interactive Navigation (Plotly Map) & Timeline.
+            - Right Column: Dynamic Detail View (Context, Art, Architecture Radar Chart).
+         3. Planning Section: Climate/Crowd data for practical utility.
+         The structure prioritizes "Exploration" -> "Deep Dive" -> "Practicality". 
+         Users select a location on the schematic map to reveal its historical soul.
+    -->
+
+    <!-- Visualization & Content Choices:
+         1. Plotly Scatter Map: To show relative locations (North/South/East/West from City Center) abstractly without needing a heavy map API. Goal: Orient the user spatially.
+         2. Chart.js Radar Chart: To visualize the "Architectural Blend" (Rajput vs Mughal vs European influence). Goal: Analyze art history visually.
+         3. Chart.js Bar/Line Combo: For Weather vs Tourist traffic. Goal: Help plan the visit time.
+         4. Dynamic Text Blocks: To provide the requested specific descriptions and history.
+         CONFIRMATION: NO SVG graphics used. NO Mermaid JS used.
+    -->
+</head>
+<body class="font-sans antialiased selection:bg-jaipur-pink selection:text-white">
+
+    <!-- Header / Hero -->
+    <header class="w-full bg-jaipur-pink text-white py-12 px-6 text-center relative overflow-hidden shadow-lg">
+        <div class="max-w-4xl mx-auto relative z-10">
+            <h1 class="font-serif text-4xl md:text-5xl font-bold mb-4">자이푸르: 핑크 시티의 유산</h1>
+            <p class="text-lg md:text-xl opacity-90 font-light max-w-2xl mx-auto">
+                라자스탄의 심장, 왕가들의 역사와 예술이 숨 쉬는 곳.<br>
+                역사적 명소와 건축 양식을 통해 떠나는 시간 여행 가이드입니다.
+            </p>
+        </div>
+        <!-- Decorative Circle -->
+        <div class="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-white opacity-10 rounded-full blur-3xl"></div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-12">
+
+        <!-- Intro Section -->
+        <section class="text-center max-w-4xl mx-auto">
+            <h2 class="text-2xl font-serif font-bold text-jaipur-dark mb-4 border-b-2 border-jaipur-gold inline-block pb-1">탐험 가이드 시작하기</h2>
+            <p class="text-gray-700 leading-relaxed text-left md:text-center mt-4">
+                이 인터랙티브 가이드는 역사와 예술에 관심 있는 여행자를 위해 설계되었습니다. 
+                아래 <strong>'공간 탐색 지도'</strong>에서 명소를 클릭하면, 해당 장소의 <strong>역사적 맥락</strong>, <strong>건축 양식 분석</strong>, 
+                그리고 <strong>여행 팁</strong>을 상세히 확인할 수 있습니다. 자이푸르는 1727년 사와이 자이 싱 2세에 의해 계획된 인도 최초의 계획도시로, 
+                힌두의 실파 샤스트라(Shilpa Shastra) 건축 이론을 바탕으로 설계되었습니다.
+            </p>
+        </section>
+
+        <!-- Main Explorer Dashboard -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- LEFT PANEL: Navigation & Map (5 cols) -->
+            <div class="lg:col-span-5 space-y-8">
+                
+                <!-- Schematic Map Container -->
+                <div class="bg-white p-6 rounded-xl card-shadow border border-jaipur-light">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-xl font-bold text-jaipur-pink flex items-center">
+                            <span class="mr-2 text-2xl">🗺️</span> 공간 탐색 지도
+                        </h3>
+                        <span class="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">점들을 클릭해보세요</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">
+                        시티 팰리스(중앙)를 기준으로 각 명소의 상대적인 위치와 고도(언덕/평지)를 나타냅니다.
+                    </p>
+                    <div id="map-container" class="w-full h-80 rounded-lg overflow-hidden bg-jaipur-bg">
+                        <!-- Plotly Map Rendered Here -->
+                    </div>
+                </div>
+
+                <!-- Timeline List (Interactive) -->
+                <div class="bg-white p-6 rounded-xl card-shadow border border-jaipur-light">
+                    <h3 class="text-xl font-bold text-jaipur-dark mb-4">⏳ 역사적 타임라인</h3>
+                    <div class="space-y-0 relative border-l-2 border-jaipur-gold ml-3" id="timeline-list">
+                        <!-- Dynamic JS Population -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT PANEL: Details & Analytics (7 cols) -->
+            <div class="lg:col-span-7 space-y-6">
+                
+                <!-- Dynamic Content Display -->
+                <div id="detail-panel" class="bg-white p-8 rounded-xl card-shadow border-t-4 border-jaipur-pink min-h-[600px] transition-all duration-300">
+                    
+                    <!-- Header of Detail -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-gray-100 pb-4">
+                        <div>
+                            <span id="detail-badge" class="bg-jaipur-gold text-white text-xs font-bold px-2 py-1 rounded mb-2 inline-block">1799년 완공</span>
+                            <h2 id="detail-title" class="text-3xl font-serif font-bold text-jaipur-dark">하와 마할 (바람의 궁전)</h2>
+                            <p id="detail-subtitle" class="text-jaipur-pink font-medium italic">Hawa Mahal - Palace of Winds</p>
+                        </div>
+                    </div>
+
+                    <!-- Content Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        
+                        <!-- Text Content -->
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-bold text-gray-800 flex items-center mb-2">
+                                    <span class="text-jaipur-gold mr-2">📜</span> 역사적 맥락
+                                </h4>
+                                <p id="detail-history" class="text-sm text-gray-600 leading-relaxed">
+                                    1799년 사와이 프라탭 싱(Sawai Pratap Singh)이 건립했습니다. 왕실의 여인들이 얼굴을 드러내지 않고(Purdah 제도) 거리의 축제와 일상을 구경할 수 있도록 설계된 독특한 건축물입니다.
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <h4 class="font-bold text-gray-800 flex items-center mb-2">
+                                    <span class="text-jaipur-gold mr-2">🏛️</span> 건축 특징
+                                </h4>
+                                <p id="detail-arch" class="text-sm text-gray-600 leading-relaxed">
+                                    953개의 작은 창문(Jharokhas)이 특징으로, 이는 더운 여름에도 시원한 바람이 통하게 하는 에어컨 역할을 합니다. 힌두 신 크리슈나의 왕관 모양을 형상화했습니다.
+                                </p>
+                            </div>
+
+                            <div class="bg-jaipur-light bg-opacity-30 p-4 rounded-lg">
+                                <h4 class="font-bold text-jaipur-dark text-sm mb-2">💡 관람 팁</h4>
+                                <p id="detail-tips" class="text-xs text-gray-700">
+                                    이른 아침 햇살을 받을 때 가장 아름다운 붉은 빛을 띱니다. 맞은편 카페 옥상에서 전경을 찍는 것이 포인트입니다.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Visualization Column -->
+                        <div class="flex flex-col space-y-6">
+                            <!-- Architecture Radar Chart -->
+                            <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                <h4 class="text-center text-sm font-bold text-gray-600 mb-2">건축 양식 구성 분석</h4>
+                                <div class="chart-container mx-auto h-64">
+                                    <canvas id="archRadarChart"></canvas>
+                                </div>
+                                <p class="text-center text-xs text-gray-400 mt-2">스타일 영향도 분석</p>
+                            </div>
+
+                            <!-- Quick Stats -->
+                            <div class="grid grid-cols-2 gap-2 text-center">
+                                <div class="bg-jaipur-bg p-2 rounded">
+                                    <span class="block text-xs text-gray-500">소요 시간</span>
+                                    <span id="stat-time" class="font-bold text-jaipur-dark">1시간</span>
+                                </div>
+                                <div class="bg-jaipur-bg p-2 rounded">
+                                    <span class="block text-xs text-gray-500">입장료(외국인)</span>
+                                    <span id="stat-price" class="font-bold text-jaipur-dark">₹200</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Planning Section -->
+        <section class="bg-white p-8 rounded-xl card-shadow mt-12">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                <div class="md:col-span-1">
+                    <h2 class="text-2xl font-serif font-bold text-jaipur-dark mb-4">🗓️ 여행 계획 가이드</h2>
+                    <p class="text-gray-600 text-sm mb-4 leading-relaxed">
+                        자이푸르는 반건조 기후로 계절에 따라 여행 난이도가 크게 달라집니다. 
+                        데이터를 통해 최적의 방문 시기를 확인하세요.
+                    </p>
+                    <ul class="text-sm space-y-2 text-gray-700">
+                        <li class="flex items-center"><span class="w-3 h-3 bg-jaipur-pink rounded-full mr-2"></span>성수기: 10월 ~ 3월 (쾌적함)</li>
+                        <li class="flex items-center"><span class="w-3 h-3 bg-gray-400 rounded-full mr-2"></span>비수기: 4월 ~ 6월 (매우 더움)</li>
+                        <li class="flex items-center"><span class="w-3 h-3 bg-blue-400 rounded-full mr-2"></span>우기: 7월 ~ 9월</li>
+                    </ul>
+                </div>
+                <div class="md:col-span-2">
+                    <div class="chart-container w-full h-80">
+                        <canvas id="weatherChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="text-center text-gray-500 text-sm py-8 border-t border-jaipur-gold border-opacity-30">
+            <p>© 2026 Jaipur Historical Guide Interactive. Designed for history enthusiasts.</p>
+        </footer>
+
+    </main>
+
+    <script>
+        // --- DATA STORE ---
+        const monuments = [
+            {
+                id: 'hawa-mahal',
+                name: '하와 마할',
+                sub: '바람의 궁전 (Palace of Winds)',
+                year: 1799,
+                locX: 0.1, // Near center
+                locY: -0.1, 
+                locationType: '도심 (City Center)',
+                history: '1799년 사와이 프라탭 싱이 건립했습니다. "Purdah(퍼다)" 관습을 엄격히 따르던 왕실 여인들이 외부인에게 얼굴을 보이지 않고도 거리의 축제와 일상을 구경할 수 있도록 설계된 독특한 건축물입니다.',
+                arch: '라지푸트(Rajput) 양식과 무굴(Mughal) 양식이 결합되었습니다. 벌집 모양의 953개 창문(Jharokhas)은 벤투리 효과를 일으켜 내부를 시원하게 유지합니다. 힌두 신 크리슈나의 왕관 형상입니다.',
+                tips: '오전 9시 이전에 방문하여 동쪽에서 떠오르는 해가 건물을 비출 때 사진을 찍으세요. 내부는 좁은 경사로로 되어 있으니 편한 신발이 필수입니다.',
+                time: '1시간',
+                price: '₹200',
+                archStats: [90, 30, 0, 80, 95], // Rajput, Mughal, European, Scale, Intricacy
+                color: '#E67E73'
+            },
+            {
+                id: 'amber-fort',
+                name: '암베르 포트',
+                sub: '아메르 성 (Amer Fort)',
+                year: 1592,
+                locX: 0.8, // Far North-East
+                locY: 1.5, // High altitude/North
+                locationType: '북동쪽 언덕 (Hilltop)',
+                history: '1592년 라자 만 싱 1세가 건설을 시작했습니다. 자이푸르 천도 이전 카츠와하 왕조의 수도였습니다. 험준한 언덕 위에 세워진 난공불락의 요새이자 화려한 궁전입니다.',
+                arch: '전통적인 힌두 라지푸트 양식에 무굴 양식의 장식이 더해졌습니다. 특히 "쉬시 마할(거울 궁전)"은 촛불 하나로 온 방을 밝힐 수 있는 정교한 유리 모자이크 예술의 정점을 보여줍니다.',
+                tips: '코끼리를 타고 성을 오르는 체험이 유명하지만, 도보로 올라가며 경치를 즐기는 것을 추천합니다. 저녁의 "빛과 소리 쇼"가 환상적입니다.',
+                time: '3~4시간',
+                price: '₹550',
+                archStats: [70, 60, 0, 95, 85],
+                color: '#D4AF37'
+            },
+            {
+                id: 'city-palace',
+                name: '시티 팰리스',
+                sub: '자이푸르 왕궁',
+                year: 1727,
+                locX: 0, // Center
+                locY: 0,
+                locationType: '도심 중앙 (City Heart)',
+                history: '자이푸르 설립과 함께 1729~1732년에 지어졌으며, 현재도 왕족의 후손이 거주하는 공간(찬드라 마할)이 있습니다. 자이푸르 통치의 중심지였습니다.',
+                arch: '라지푸트, 무굴, 그리고 후기의 유럽 양식이 혼합된 복합체입니다. "피콕 게이트(공작 문)" 등 4계절을 상징하는 4개의 문이 유명하며, 정교한 대리석 조각이 특징입니다.',
+                tips: '박물관에는 왕실 의상과 무기가 전시되어 있습니다. 추가 요금을 내면 왕족 거주 구역의 일부를 가이드와 함께 투어할 수 있습니다.',
+                time: '2~3시간',
+                price: '₹700',
+                archStats: [50, 50, 40, 85, 80],
+                color: '#CD5C5C'
+            },
+            {
+                id: 'jantar-mantar',
+                name: '잔타르 만타르',
+                sub: '왕립 천문대',
+                year: 1734,
+                locX: 0.1, // Near City Palace
+                locY: -0.05,
+                locationType: '도심 (Near Palace)',
+                history: '학구적인 왕 사와이 자이 싱 2세가 건설한 5개의 천문대 중 가장 크고 보존 상태가 좋은 곳입니다. 유네스코 세계문화유산으로 지정되었습니다.',
+                arch: '석조와 대리석으로 만든 19개의 천문 기구로 구성되어 있습니다. 세계에서 가장 큰 해시계 "삼랏 얀트라"는 2초 단위까지 시간을 측정할 수 있는 과학적 정밀함을 자랑합니다.',
+                tips: '그늘이 거의 없으므로 한낮은 피하세요. 기구들의 작동 원리를 이해하려면 현지 가이드나 오디오 가이드가 필수입니다.',
+                time: '1.5시간',
+                price: '₹200',
+                archStats: [100, 10, 0, 90, 40], // High 'Science/Scale', Low 'Decoration'
+                color: '#4A3B32'
+            },
+            {
+                id: 'albert-hall',
+                name: '알버트 홀 박물관',
+                sub: '주립 중앙 박물관',
+                year: 1887,
+                locX: 0.2,
+                locY: -0.8, // South of center
+                locationType: '남쪽 공원 (Ram Niwas Garden)',
+                history: '1876년 웨일스 왕자(훗날 에드워드 7세)의 방문을 기념해 초석을 놓았으며, 1887년 박물관으로 개관했습니다. 영국의 공공 건축 양식을 반영했습니다.',
+                arch: '인도-사라센(Indo-Saracenic) 양식의 대표작입니다. 이슬람의 돔과 아치, 유럽의 고딕 양식, 인도의 석조 기술이 우아하게 융합되어 있습니다.',
+                tips: '밤에는 건물 전체가 화려한 조명으로 밝혀져 야경 명소로 유명합니다. 내부에는 이집트 미라와 다양한 미니어처 회화가 전시되어 있습니다.',
+                time: '2시간',
+                price: '₹300',
+                archStats: [30, 40, 90, 75, 70], // High European influence
+                color: '#A52A2A'
+            },
+            {
+                id: 'nahargarh-fort',
+                name: '나하가르 포트',
+                sub: '호랑이 요새',
+                year: 1734,
+                locX: -0.5,
+                locY: 0.8, // North West Hill
+                locationType: '북서쪽 언덕 (Ridge)',
+                history: '도시의 방어를 강화하기 위해 지어졌습니다. 전설에 따르면 나하 싱(Nahar Singh) 왕자의 영혼이 건설을 방해하여 그의 이름을 따서 지었다고 합니다.',
+                arch: '마드벤드라 바반(Madhavendra Bhawan)은 왕과 12명의 왕비를 위해 똑같은 구조의 12개 스위트룸이 연결된 구조로, 프라이버시와 연결성을 동시에 고려한 독창적 설계입니다.',
+                tips: '자이푸르 시내 전체가 내려다보이는 최고의 일몰 포인트입니다. 늦은 오후에 올라가서 야경까지 보고 내려오는 것을 추천합니다.',
+                time: '2시간',
+                price: '₹200',
+                archStats: [80, 30, 20, 70, 60],
+                color: '#8B4513'
+            }
+        ];
+
+        // Global State
+        let currentMonumentId = monuments[2].id; // Default: City Palace
+        let radarChartInstance = null;
+        let weatherChartInstance = null;
+
+        // --- PLOTLY MAP SETUP ---
+        function initMap() {
+            const xVals = monuments.map(m => m.locX);
+            const yVals = monuments.map(m => m.locY);
+            const textVals = monuments.map(m => m.name);
+            const colors = monuments.map(m => m.color);
+            const sizes = monuments.map(m => m.id === currentMonumentId ? 25 : 15);
+
+            const data = [{
+                x: xVals,
+                y: yVals,
+                text: textVals,
+                mode: 'markers+text',
+                textposition: 'top center',
+                marker: {
+                    size: sizes,
+                    color: colors,
+                    opacity: 0.8,
+                    line: {
+                        color: '#4A3B32',
+                        width: 1
+                    }
+                },
+                type: 'scatter',
+                hoverinfo: 'text'
+            }];
+
+            const layout = {
+                title: false,
+                xaxis: { 
+                    range: [-1, 1.5], 
+                    showgrid: true, 
+                    zeroline: false, 
+                    showticklabels: false,
+                    title: '서 <--- 위치 (도심 기준) ---> 동'
+                },
+                yaxis: { 
+                    range: [-1.2, 2], 
+                    showgrid: true, 
+                    zeroline: false, 
+                    showticklabels: false,
+                    title: '남 <--- 고도/위도 ---> 북'
+                },
+                margin: { l: 40, r: 20, b: 40, t: 20 },
+                paper_bgcolor: '#FFF8F0', // Match Tailwind bg-jaipur-bg
+                plot_bgcolor: '#FFF8F0',
+                hovermode: 'closest',
+                dragmode: false // Disable panning/zooming for simplicity
+            };
+
+            const config = { responsive: true, displayModeBar: false };
+
+            Plotly.newPlot('map-container', data, layout, config);
+
+            // Click Event
+            document.getElementById('map-container').on('plotly_click', function(data){
+                const pointIndex = data.points[0].pointIndex;
+                const selectedMonument = monuments[pointIndex];
+                updateDetail(selectedMonument.id);
+            });
+        }
+
+        // --- CHART.JS RADAR CHART SETUP ---
+        function initRadarChart() {
+            const ctx = document.getElementById('archRadarChart').getContext('2d');
+            
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['라지푸트 영향', '무굴 영향', '유럽 영향', '규모(웅장함)', '장식 정교함'],
+                    datasets: [{
+                        label: '건축 요소 분석',
+                        data: [0, 0, 0, 0, 0], // Initial placeholder
+                        backgroundColor: 'rgba(230, 126, 115, 0.4)', // Jaipur accent
+                        borderColor: '#CD5C5C',
+                        pointBackgroundColor: '#D4AF37',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: '#D4AF37'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(0,0,0,0.1)' },
+                            grid: { color: 'rgba(0,0,0,0.1)' },
+                            pointLabels: {
+                                font: { size: 11, family: "'Noto Sans KR', sans-serif" },
+                                color: '#4A3B32'
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: { display: false } // Hide numbers for cleaner look
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // --- CHART.JS WEATHER CHART SETUP ---
+        function initWeatherChart() {
+            const ctx = document.getElementById('weatherChart').getContext('2d');
+            
+            // Data: Avg High Temp (C) vs Comfort Index (Inverse of Crowds/Heat)
+            const months = ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'];
+            const temps = [22, 25, 31, 37, 40, 39, 34, 32, 33, 33, 29, 24]; // Max Temp
+            const crowds = [9, 9, 8, 4, 2, 2, 4, 5, 6, 8, 9, 10]; // 1-10 Scale (10 = High Traffic/Good Weather)
+
+            weatherChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: '평균 최고 기온 (°C)',
+                            data: temps,
+                            type: 'line',
+                            borderColor: '#CD5C5C',
+                            backgroundColor: '#CD5C5C',
+                            borderWidth: 2,
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '여행 적합도 & 방문객 수 (1-10)',
+                            data: crowds,
+                            backgroundColor: function(context) {
+                                const value = context.raw;
+                                if (value >= 8) return 'rgba(74, 59, 50, 0.8)'; // Good (Dark)
+                                if (value <= 4) return 'rgba(200, 200, 200, 0.5)'; // Bad (Light)
+                                return 'rgba(212, 175, 55, 0.6)'; // Gold
+                            },
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: { display: true, text: '기온 (°C)' },
+                            grid: { display: false }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: { display: true, text: '여행 지수' },
+                            grid: { drawOnChartArea: true, color: 'rgba(0,0,0,0.05)' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    if(context.dataset.type === 'line') return `기온: ${context.raw}°C`;
+                                    return `여행 지수: ${context.raw}/10`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // --- UPDATE LOGIC ---
+        function updateDetail(id) {
+            currentMonumentId = id;
+            const data = monuments.find(m => m.id === id);
+            if (!data) return;
+
+            // 1. Update Text
+            document.getElementById('detail-title').innerText = data.name;
+            document.getElementById('detail-subtitle').innerText = data.sub;
+            document.getElementById('detail-badge').innerText = `${data.year}년 완공`;
+            document.getElementById('detail-history').innerText = data.history;
+            document.getElementById('detail-arch').innerText = data.arch;
+            document.getElementById('detail-tips').innerText = data.tips;
+            document.getElementById('stat-time').innerText = data.time;
+            document.getElementById('stat-price').innerText = data.price;
+
+            // 2. Update Map Markers (Highlight)
+            const updateSizes = monuments.map(m => m.id === id ? 30 : 12);
+            const updateOpacity = monuments.map(m => m.id === id ? 1 : 0.6);
+            
+            Plotly.restyle('map-container', {
+                'marker.size': [updateSizes],
+                'marker.opacity': [updateOpacity]
+            });
+
+            // 3. Update Radar Chart
+            radarChartInstance.data.datasets[0].data = data.archStats;
+            radarChartInstance.update();
+
+            // 4. Update Timeline List UI (Highlight active)
+            renderTimeline();
+        }
+
+        function renderTimeline() {
+            const list = document.getElementById('timeline-list');
+            list.innerHTML = '';
+
+            // Sort by year
+            const sorted = [...monuments].sort((a, b) => a.year - b.year);
+
+            sorted.forEach(m => {
+                const isActive = m.id === currentMonumentId;
+                const item = document.createElement('div');
+                item.className = `mb-6 ml-4 relative cursor-pointer group transition-all duration-300`;
+                item.onclick = () => updateDetail(m.id);
+
+                // Dot on line
+                const dot = document.createElement('div');
+                dot.className = `absolute -left-[25px] top-1 w-4 h-4 rounded-full border-2 border-white shadow-sm transition-colors duration-300 ${isActive ? 'bg-jaipur-pink scale-125' : 'bg-gray-300 group-hover:bg-jaipur-gold'}`;
+                
+                // Content
+                const content = document.createElement('div');
+                content.innerHTML = `
+                    <span class="text-xs font-bold ${isActive ? 'text-jaipur-pink' : 'text-gray-400'}">${m.year}</span>
+                    <h4 class="font-bold text-sm ${isActive ? 'text-gray-900' : 'text-gray-600 group-hover:text-gray-800'}">${m.name}</h4>
+                `;
+
+                item.appendChild(dot);
+                item.appendChild(content);
+                list.appendChild(item);
+            });
+        }
+
+        // --- INITIALIZATION ---
+        window.addEventListener('DOMContentLoaded', () => {
+            initMap();
+            initRadarChart();
+            initWeatherChart();
+            renderTimeline();
+            
+            // Initial load
+            updateDetail(currentMonumentId);
+        });
+
+    </script>
+</body>
+</html>
