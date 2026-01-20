@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아잔타 석굴: 자타카 이야기 탐험</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Custom Fonts & Utilities */
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f5f5f4; /* Stone-100 */
+        }
+        
+        h1, h2, h3, .serif {
+            font-family: 'Noto Serif KR', serif;
+        }
+
+        /* Chart Container Utilities */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+
+        /* Custom Scrollbar for story list */
+        .story-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .story-scroll::-webkit-scrollbar-track {
+            background: #e7e5e4;
+        }
+        .story-scroll::-webkit-scrollbar-thumb {
+            background: #a8a29e;
+            border-radius: 3px;
+        }
+
+        /* Interior Map Zone Interactions */
+        .zone {
+            transition: all 0.3s ease;
+        }
+        .zone.active-zone {
+            background-color: #d97706 !important; /* Amber-600 */
+            color: white;
+            border-color: #b45309;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Gorge Map Animations */
+        .cave-node {
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .cave-node:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        .cave-node.selected {
+            background-color: #b45309; /* Amber-700 */
+            color: white;
+            border-color: #78350f;
+            transform: scale(1.15);
+            box-shadow: 0 0 15px rgba(180, 83, 9, 0.4);
+        }
+    </style>
+    <!-- Chosen Palette: Stone (Neutral Background) + Amber (Accent/History) + Slate (Text) -->
+    <!-- Application Structure Plan:
+         1. Header: Intro & Context.
+         2. Navigation (Gorge Map): A visual selector for caves, mimicking the site layout.
+         3. Main Content Area (Split View):
+            - Left: Analysis Dashboard (Charts showing distribution).
+            - Right: Cave Detail Viewer (The core interactive element).
+         4. Cave Detail Viewer:
+            - Internal Schematic: A CSS grid representing the room layout.
+            - Story List: The Jataka tales.
+            - Interaction: Clicking a story highlights the wall on the schematic.
+    -->
+    <!-- Visualization & Content Choices:
+         - Gorge Map: CSS Grid. Represents the horseshoe shape physically. Goal: Spatial context.
+         - Charts: Chart.js Bar & Doughnut. Goal: Show the scale and thematic variety of the tales.
+         - Interior Map: CSS Grid div structure. Goal: Fulfill user request for "location markings" without using images/SVG.
+         - Text: Organized hierarchically.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="text-stone-800 antialiased">
+
+    <!-- Header Section -->
+    <header class="bg-stone-900 text-stone-100 py-8 shadow-lg">
+        <div class="container mx-auto px-4 text-center">
+            <h1 class="text-3xl md:text-4xl font-bold mb-2 text-amber-500">아잔타 석굴: 자타카 이야기 디지털 아카이브</h1>
+            <p class="text-stone-400 max-w-2xl mx-auto font-light">
+                인도 불교 미술의 정수, 아잔타 석굴에 남겨진 부처의 전생 이야기(Jataka)를 탐험해보세요.<br>
+                각 석굴별 벽화의 위치와 의미를 시각적으로 정리한 인터랙티브 가이드입니다.
+            </p>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="container mx-auto px-4 py-8 space-y-12">
+
+        <!-- SECTION 1: The Gorge Navigation (Spatial Selector) -->
+        <section>
+            <div class="mb-6 border-l-4 border-amber-600 pl-4">
+                <h2 class="text-2xl font-bold serif text-stone-800">1. 석굴 탐색 (Gorge Map)</h2>
+                <p class="text-stone-600 mt-1">와고라 강을 굽어보는 말굽 모양의 협곡을 따라 배치된 석굴 번호를 선택하세요. 주요 벽화가 있는 석굴은 강조되어 있습니다.</p>
+            </div>
+            
+            <!-- Abstract Map Visualization -->
+            <div class="bg-stone-200 p-6 rounded-xl shadow-inner overflow-x-auto">
+                <div class="min-w-[600px] flex flex-col items-center gap-4">
+                    <!-- Top Row (Caves 8-20 approx) -->
+                    <div class="flex justify-center gap-3 items-end h-16">
+                        <!-- Generating nodes via JS would be cleaner, but hardcoding structure for layout control -->
+                        <button onclick="selectCave(17)" class="cave-node w-12 h-12 rounded-full border-4 border-stone-300 bg-amber-100 hover:bg-amber-200 flex items-center justify-center font-bold text-sm shadow-sm" data-cave="17">17</button>
+                        <button onclick="selectCave(16)" class="cave-node w-12 h-12 rounded-full border-4 border-stone-300 bg-amber-100 hover:bg-amber-200 flex items-center justify-center font-bold text-sm shadow-sm" data-cave="16">16</button>
+                        <button onclick="selectCave(15)" class="cave-node w-10 h-10 rounded-full border-2 border-stone-300 bg-stone-100 text-stone-400 flex items-center justify-center text-xs" disabled>15</button>
+                        <button onclick="selectCave(12)" class="cave-node w-10 h-10 rounded-full border-2 border-stone-300 bg-stone-100 text-stone-400 flex items-center justify-center text-xs" disabled>12</button>
+                        <button onclick="selectCave(10)" class="cave-node w-12 h-12 rounded-full border-4 border-stone-300 bg-amber-100 hover:bg-amber-200 flex items-center justify-center font-bold text-sm shadow-sm" data-cave="10">10</button>
+                        <button onclick="selectCave(9)" class="cave-node w-12 h-12 rounded-full border-4 border-stone-300 bg-amber-100 hover:bg-amber-200 flex items-center justify-center font-bold text-sm shadow-sm" data-cave="9">9</button>
+                    </div>
+                    
+                    <!-- Middle "River" Space -->
+                    <div class="w-full h-8 border-b-2 border-dashed border-stone-400 text-center text-stone-500 text-xs italic leading-[3rem]">와고라 강 (Waghora River)</div>
+
+                    <!-- Bottom Curves (Caves 1-7, 21-26) -->
+                    <div class="flex justify-between w-full max-w-3xl px-12">
+                        <!-- Left Curve (Early Caves) -->
+                        <div class="flex gap-2 flex-wrap max-w-[250px] justify-center">
+                            <button onclick="selectCave(1)" class="cave-node w-14 h-14 rounded-full border-4 border-stone-300 bg-amber-100 hover:bg-amber-200 flex items-center justify-center font-bold text-lg shadow-md mb-2" data-cave="1">1</button>
+                            <button onclick="selectCave(2)" class="cave-node w-14 h-14 rounded-full border-4 border-stone-300 bg-amber-100 hover:bg-amber-200 flex items-center justify-center font-bold text-lg shadow-md mb-2" data-cave="2">2</button>
+                            <button onclick="selectCave(4)" class="cave-node w-10 h-10 rounded-full border-2 border-stone-300 bg-stone-100 text-stone-400 flex items-center justify-center text-xs" disabled>4</button>
+                        </div>
+                        
+                        <!-- Right Curve (Later Caves) -->
+                        <div class="flex gap-2 flex-wrap max-w-[250px] justify-center">
+                            <button onclick="selectCave(19)" class="cave-node w-10 h-10 rounded-full border-2 border-stone-300 bg-stone-100 text-stone-400 flex items-center justify-center text-xs" disabled>19</button>
+                            <button onclick="selectCave(26)" class="cave-node w-10 h-10 rounded-full border-2 border-stone-300 bg-stone-100 text-stone-400 flex items-center justify-center text-xs" disabled>26</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="text-xs text-center mt-2 text-stone-500">* 주요 자타카 벽화가 보존된 석굴(1, 2, 9, 10, 16, 17번)만 활성화되어 있습니다.</p>
+        </section>
+
+        <!-- GRID LAYOUT: Left (Stats) / Right (Detail) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- SECTION 2: Cave Detail View (Occupies 8/12 columns on large screens) -->
+            <div class="lg:col-span-8 space-y-6">
+                <div id="cave-detail-panel" class="bg-white rounded-xl shadow-lg border border-stone-200 p-6 min-h-[500px] transition-opacity duration-300">
+                    
+                    <!-- Dynamic Header -->
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-stone-100 pb-4 mb-6">
+                        <div>
+                            <span class="text-amber-600 font-bold tracking-wider text-sm uppercase">Selected Site</span>
+                            <h2 id="detail-title" class="text-3xl font-bold text-stone-900 serif">석굴 1 (Cave 1)</h2>
+                            <p id="detail-desc" class="text-stone-500 text-sm mt-1">대승 불교 시기의 가장 화려한 비하라(Vihara) 양식 석굴입니다.</p>
+                        </div>
+                        <div class="mt-2 md:mt-0 px-3 py-1 bg-stone-100 rounded-full text-xs font-mono text-stone-500">
+                            ID: <span id="detail-id">CV-01</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Sub-Section: Interactive Schematic Map -->
+                        <div class="space-y-4">
+                            <h3 class="font-bold text-stone-700 flex items-center gap-2">
+                                <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+                                내부 구조 및 벽화 위치
+                            </h3>
+                            <div class="bg-stone-100 p-4 rounded-lg">
+                                <!-- The Schematic Diagram (CSS Grid) -->
+                                <div class="relative w-full aspect-square max-w-[350px] mx-auto bg-stone-300 border-4 border-stone-400 rounded-sm shadow-inner grid grid-cols-3 grid-rows-3 gap-1 p-1">
+                                    
+                                    <!-- Rear Wall / Shrine -->
+                                    <div id="zone-rear" class="zone col-span-3 row-span-1 bg-stone-200 flex items-center justify-center text-xs font-bold text-stone-500 rounded border border-stone-300 cursor-default">
+                                        후벽 / 불전 (Rear)
+                                    </div>
+                                    
+                                    <!-- Left Wall -->
+                                    <div id="zone-left" class="zone row-span-1 col-span-1 bg-stone-200 flex items-center justify-center text-xs font-bold text-stone-500 rounded border border-stone-300 writing-vertical py-4">
+                                        좌측 벽 (Left)
+                                    </div>
+                                    
+                                    <!-- Central Hall (Ceiling usually implied here or specific zones) -->
+                                    <div id="zone-center" class="zone bg-stone-50 flex items-center justify-center text-center text-[10px] text-stone-400 p-2 rounded border border-dashed border-stone-300">
+                                        중앙 홀 / 천장<br>(Central)
+                                    </div>
+                                    
+                                    <!-- Right Wall -->
+                                    <div id="zone-right" class="zone row-span-1 col-span-1 bg-stone-200 flex items-center justify-center text-xs font-bold text-stone-500 rounded border border-stone-300 writing-vertical py-4">
+                                        우측 벽 (Right)
+                                    </div>
+                                    
+                                    <!-- Front Wall / Porch -->
+                                    <div id="zone-front" class="zone col-span-3 row-span-1 bg-stone-200 flex items-center justify-center text-xs font-bold text-stone-500 rounded border border-stone-300 mt-1">
+                                        전실 / 현관 (Front/Porch)
+                                    </div>
+                                </div>
+                                <p class="text-xs text-center mt-3 text-stone-500">목록에서 자타카를 선택하면 위치가 표시됩니다.</p>
+                            </div>
+                        </div>
+
+                        <!-- Sub-Section: Jataka List -->
+                        <div class="flex flex-col h-full max-h-[400px]">
+                            <h3 class="font-bold text-stone-700 mb-3 flex items-center gap-2">
+                                <span class="w-2 h-2 bg-amber-500 rounded-full"></span>
+                                주요 자타카 목록
+                            </h3>
+                            <div id="jataka-list" class="story-scroll flex-1 overflow-y-auto space-y-3 pr-2">
+                                <!-- Dynamic Content Injected Here -->
+                                <div class="p-4 bg-stone-50 rounded border border-stone-200 text-center text-stone-500">
+                                    좌측 지도에서 석굴을 선택해주세요.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Selected Story Detail Box -->
+                    <div id="story-detail-box" class="mt-6 p-5 bg-amber-50 rounded-lg border border-amber-100 hidden">
+                        <h4 id="story-title" class="font-bold text-amber-900 text-lg mb-2">이야기 제목</h4>
+                        <div class="text-sm text-stone-700 leading-relaxed space-y-2">
+                            <p id="story-content">이야기 요약 내용이 여기에 표시됩니다.</p>
+                            <div class="flex gap-2 mt-3">
+                                <span id="story-theme" class="px-2 py-1 bg-white border border-amber-200 rounded text-xs text-amber-800 font-semibold">희생</span>
+                                <span id="story-loc-tag" class="px-2 py-1 bg-stone-800 rounded text-xs text-white">좌측 벽</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: Context & Stats (Occupies 4/12 columns) -->
+            <div class="lg:col-span-4 space-y-8">
+                
+                <!-- Chart 1: Themes -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200">
+                    <h3 class="font-bold text-stone-700 mb-4 text-sm uppercase tracking-wide">이야기 주제 분포</h3>
+                    <div class="chart-container" style="height: 250px;">
+                        <canvas id="themeChart"></canvas>
+                    </div>
+                    <p class="text-xs text-stone-500 mt-2 leading-snug">아잔타 벽화의 자타카들은 주로 '보시(나눔)'와 '인욕(참음)'의 바라밀을 강조하는 이야기들로 구성되어 있습니다.</p>
+                </div>
+
+                <!-- Chart 2: Count by Cave -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-stone-200">
+                    <h3 class="font-bold text-stone-700 mb-4 text-sm uppercase tracking-wide">석굴별 벽화 밀도</h3>
+                    <div class="chart-container" style="height: 200px;">
+                        <canvas id="densityChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Info Card -->
+                <div class="bg-stone-800 text-stone-300 p-5 rounded-xl text-sm">
+                    <h4 class="text-amber-500 font-bold mb-2">연구 노트</h4>
+                    <p class="mb-3">
+                        자타카(Jataka, 본생담)는 부처가 깨달음을 얻기 전, 보살로서 수행하던 수많은 전생의 이야기입니다.
+                    </p>
+                    <p>
+                        아잔타의 화공들은 석굴 내부의 <strong>'빛이 들어오는 방향'</strong>과 <strong>'참배 동선'</strong>(시계 방향)을 고려하여 이야기를 배치했습니다. 이 웹앱의 '위치 표시' 기능을 통해 그 의도를 유추해볼 수 있습니다.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-stone-900 text-stone-500 py-8 mt-12 text-center text-sm border-t border-stone-800">
+        <p>&copy; 2026 Ajanta Digital Research Initiative. All structural layouts are schematic approximations.</p>
+    </footer>
+
+    <!-- DATA & LOGIC -->
+    <script>
+        // --- 1. DATA REPOSITORY ---
+        // Contains narrative data, cave metadata, and mapping coordinates
+        const ajantaData = {
+            1: {
+                title: "석굴 1 (Cave 1)",
+                type: "Vihara (승원)",
+                period: "5세기 후반 (바카타카 왕조)",
+                desc: "아잔타에서 가장 훌륭한 벽화들이 남아있는 석굴입니다. 연화수보살도와 다양한 본생담이 벽면 가득 그려져 있습니다.",
+                stories: [
+                    {
+                        id: "c1-mahajanaka",
+                        title: "마하자나카 본생담 (Mahajanaka Jataka)",
+                        location: "left",
+                        theme: "정진(Effort)",
+                        summary: "난파선에서 바다의 여신에게 구조되어 왕위를 되찾지만, 결국 세속의 덧없음을 깨닫고 출가하는 왕의 이야기입니다. 화려한 궁중 생활과 출가의 대비가 특징입니다."
+                    },
+                    {
+                        id: "c1-sibi",
+                        title: "시비 왕 본생담 (Sibi Jataka)",
+                        location: "left",
+                        theme: "보시(Charity)",
+                        summary: "비둘기를 쫓는 매로부터 비둘기를 구하기 위해, 자신의 허벅지 살을 베어내어 매에게 주는 시비 왕의 희생 이야기입니다."
+                    },
+                    {
+                        id: "c1-sankhapala",
+                        title: "상카팔라 본생담 (Sankhapala Jataka)",
+                        location: "left",
+                        theme: "계율(Precepts)",
+                        summary: "용왕으로 태어난 보살이 사냥꾼들에게 잡혀 고통받으면서도, 계율을 지키기 위해 저항하지 않고 인내하는 이야기입니다."
+                    },
+                    {
+                        id: "c1-champeya",
+                        title: "참페야 본생담 (Champeya Jataka)",
+                        location: "right",
+                        theme: "계율(Precepts)",
+                        summary: "상카팔라와 유사하게 용왕이 고행자와의 약속을 지키기 위해 궁전으로 돌아가 설법을 듣는 장면이 묘사됩니다."
+                    }
+                ]
+            },
+            2: {
+                title: "석굴 2 (Cave 2)",
+                type: "Vihara (승원)",
+                period: "6세기 초반",
+                desc: "석굴 1과 유사하지만, 천장 장식과 기둥의 조각이 더욱 정교합니다. 여성 후원자들의 영향이 강하게 나타나는 석굴입니다.",
+                stories: [
+                    {
+                        id: "c2-hamsa",
+                        title: "함사 본생담 (Hamsa Jataka)",
+                        location: "left",
+                        theme: "지혜(Wisdom)",
+                        summary: "황금 거위(보살)가 사냥꾼에게 잡혔으나, 그의 지혜로운 설법으로 왕과 왕비를 감화시키고 풀려나는 이야기입니다."
+                    },
+                    {
+                        id: "c2-vidhurapandita",
+                        title: "비두라판디타 본생담 (Vidhurapandita Jataka)",
+                        location: "right",
+                        theme: "지혜(Wisdom)",
+                        summary: "현자 비두라가 야차(도깨비)에게 잡혀가 죽을 위기에 처했으나, 오히려 야차를 교화시키는 긴 서사시입니다."
+                    },
+                    {
+                        id: "c2-ruru",
+                        title: "루루 본생담 (Ruru Jataka)",
+                        location: "right",
+                        theme: "자비(Compassion)",
+                        summary: "황금 사슴(보살)이 물에 빠진 사람을 구해 주었으나, 그 사람이 배신하고 왕에게 사슴의 위치를 알립니다. 결국 왕이 사슴의 고결함에 감복합니다."
+                    }
+                ]
+            },
+            9: {
+                title: "석굴 9 (Cave 9)",
+                type: "Chaitya (차이티야/예배당)",
+                period: "기원전 1세기 (초기)",
+                desc: "초기 불교 시기의 말굽형 예배당입니다. 후대에 덧그려진 벽화들이 기둥과 벽면에 남아있습니다.",
+                stories: [
+                    {
+                        id: "c9-sad-danta",
+                        title: "사다나 본생담 (Shaddanta Jataka)",
+                        location: "front",
+                        theme: "희생(Sacrifice)",
+                        summary: "여섯 개의 상아를 가진 코끼리 이야기. 전생의 원한을 품은 왕비가 사냥꾼을 보내 상아를 원하자, 스스로 상아를 뽑아줍니다."
+                    }
+                ]
+            },
+            10: {
+                title: "석굴 10 (Cave 10)",
+                type: "Chaitya (차이티야/예배당)",
+                period: "기원전 2세기 (가장 오래됨)",
+                desc: "아잔타에서 가장 오래된 석굴입니다. 기둥에 그려진 삼존불과 띠 모양의 본생담이 특징입니다.",
+                stories: [
+                    {
+                        id: "c10-sama",
+                        title: "사마 본생담 (Sama Jataka)",
+                        location: "left",
+                        theme: "효(Filial Piety)",
+                        summary: "눈먼 부모를 모시던 효자 사마가 왕의 오발탄에 맞아 죽게 되자, 부모의 슬픔과 기도로 되살아나는 이야기입니다."
+                    },
+                    {
+                        id: "c10-chaddanta",
+                        title: "사다나 본생담 (Chaddanta Jataka)",
+                        location: "right",
+                        theme: "희생(Sacrifice)",
+                        summary: "석굴 9번과 같은 주제이나 더 오래된 양식으로 그려져 있습니다. 코끼리 떼의 묘사가 생동감 넘칩니다."
+                    }
+                ]
+            },
+            16: {
+                title: "석굴 16 (Cave 16)",
+                type: "Vihara (승원)",
+                period: "5세기 후반",
+                desc: "계곡 중앙에 위치한 핵심 석굴입니다. '빈사 상태의 공주' 그림으로 유명합니다.",
+                stories: [
+                    {
+                        id: "c16-hasti",
+                        title: "하스티 본생담 (Hasti Jataka)",
+                        location: "left",
+                        theme: "희생(Sacrifice)",
+                        summary: "굶주린 여행자들을 위해 스스로 절벽에서 떨어져 그들에게 고기를 제공한 코끼리의 이야기입니다."
+                    },
+                    {
+                        id: "c16-maha-ummagga",
+                        title: "마하-움마가 본생담 (Maha-Ummagga Jataka)",
+                        location: "right",
+                        theme: "지혜(Wisdom)",
+                        summary: "현자 마호사다가 터널(Ummagga)을 이용한 지략으로 적군을 물리치고 왕국을 구하는 이야기입니다."
+                    }
+                ]
+            },
+            17: {
+                title: "석굴 17 (Cave 17)",
+                type: "Vihara (승원)",
+                period: "5세기 후반",
+                desc: "벽화의 보존 상태가 가장 뛰어나 '벽화의 갤러리'라 불립니다. 가장 많은 수의 자타카가 그려져 있습니다.",
+                stories: [
+                    {
+                        id: "c17-vessantara",
+                        title: "베산타라 본생담 (Vessantara Jataka)",
+                        location: "left",
+                        theme: "보시(Charity)",
+                        summary: "보시의 완성. 왕자 베산타라는 비를 부르는 코끼리, 자신의 재산, 심지어 아내와 아이들까지 모두 남에게 주어버리는 극한의 보시를 행합니다."
+                    },
+                    {
+                        id: "c17-nalagiri",
+                        title: "날라기리 코끼리 조복 (Nalagiri)",
+                        location: "front",
+                        theme: "자비(Compassion)",
+                        summary: "데바닷타가 부처를 해치기 위해 술 취한 코끼리 날라기리를 풀었으나, 부처의 자비심 앞에서 코끼리가 무릎을 꿇는 장면입니다."
+                    },
+                    {
+                        id: "c17-simhala",
+                        title: "심할라 본생담 (Simhala Jataka)",
+                        location: "right",
+                        theme: "지혜(Wisdom)",
+                        summary: "나찰녀(식인귀)들이 미녀로 변신해 유혹하는 섬에서, 유일하게 유혹을 뿌리치고 탈출하여 나중에 왕이 되어 나찰녀들을 정벌하는 이야기."
+                    },
+                    {
+                        id: "c17-mahakapi",
+                        title: "마하카피 본생담 (Mahakapi Jataka)",
+                        location: "rear",
+                        theme: "희생(Sacrifice)",
+                        summary: "원숭이 왕(보살)이 자신의 몸을 다리로 만들어 무리를 사냥꾼들로부터 도망치게 하고 죽음을 맞이하는 이야기."
+                    }
+                ]
+            }
+        };
+
+        // --- 2. STATE MANAGEMENT ---
+        let currentCaveId = 1;
+        let themeChartInstance = null;
+        let densityChartInstance = null;
+
+        // --- 3. CORE FUNCTIONS ---
+
+        function initApp() {
+            renderCharts();
+            selectCave(1); // Default select Cave 1
+        }
+
+        // Handle Cave Selection
+        function selectCave(caveId) {
+            currentCaveId = caveId;
+            const data = ajantaData[caveId];
+
+            // Update Map Visuals
+            document.querySelectorAll('.cave-node').forEach(btn => {
+                if(parseInt(btn.dataset.cave) === caveId) {
+                    btn.classList.add('selected');
+                } else {
+                    btn.classList.remove('selected');
+                }
+            });
+
+            // Update Text Content
+            document.getElementById('detail-title').innerText = data.title;
+            document.getElementById('detail-id').innerText = `CV-${String(caveId).padStart(2, '0')}`;
+            document.getElementById('detail-desc').innerText = data.desc;
+
+            // Reset Interactions
+            resetZones();
+            document.getElementById('story-detail-box').classList.add('hidden');
+
+            // Render Story List
+            const listContainer = document.getElementById('jataka-list');
+            listContainer.innerHTML = '';
+            
+            if (data.stories.length === 0) {
+                listContainer.innerHTML = `<div class="p-4 text-center text-stone-400 text-sm">기록된 주요 자타카 정보가 없습니다.</div>`;
+            } else {
+                data.stories.forEach(story => {
+                    const item = document.createElement('div');
+                    item.className = 'p-3 bg-white border border-stone-200 rounded-lg shadow-sm hover:border-amber-400 hover:shadow-md cursor-pointer transition-all';
+                    item.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <span class="font-bold text-stone-800 text-sm">${story.title}</span>
+                            <span class="text-[10px] uppercase font-bold text-stone-400 border border-stone-200 px-1 rounded">${story.location}</span>
+                        </div>
+                        <div class="text-xs text-amber-600 mt-1">${story.theme}</div>
+                    `;
+                    item.onclick = () => selectStory(story);
+                    listContainer.appendChild(item);
+                });
+            }
+        }
+
+        // Handle Story Selection (Context & Map Highlight)
+        function selectStory(story) {
+            // 1. Show Story Detail
+            const box = document.getElementById('story-detail-box');
+            document.getElementById('story-title').innerText = story.title;
+            document.getElementById('story-content').innerText = story.summary;
+            document.getElementById('story-theme').innerText = story.theme;
+            
+            // Map location key to display text
+            const locMap = { 'left': '좌측 벽', 'right': '우측 벽', 'rear': '후벽/불전', 'front': '전실/현관', 'ceiling': '천장' };
+            document.getElementById('story-loc-tag').innerText = locMap[story.location] || story.location;
+            
+            box.classList.remove('hidden');
+            box.classList.add('animate-fade-in'); // simple css animation if defined, else just appears
+
+            // 2. Highlight Map Zone
+            resetZones();
+            const zoneId = `zone-${story.location}`;
+            const zoneEl = document.getElementById(zoneId);
+            if(zoneEl) {
+                zoneEl.classList.add('active-zone');
+            }
+        }
+
+        function resetZones() {
+            document.querySelectorAll('.zone').forEach(el => el.classList.remove('active-zone'));
+        }
+
+        // --- 4. CHARTS ---
+        function renderCharts() {
+            // Prepare Data
+            const themeCounts = {};
+            const caveCounts = [];
+            const caveLabels = [];
+
+            Object.values(ajantaData).forEach(cave => {
+                caveLabels.push(`Cave ${cave.title.match(/\d+/)[0]}`);
+                caveCounts.push(cave.stories.length);
+                
+                cave.stories.forEach(story => {
+                    themeCounts[story.theme] = (themeCounts[story.theme] || 0) + 1;
+                });
+            });
+
+            // Theme Chart (Doughnut)
+            const ctxTheme = document.getElementById('themeChart').getContext('2d');
+            themeChartInstance = new Chart(ctxTheme, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(themeCounts),
+                    datasets: [{
+                        data: Object.values(themeCounts),
+                        backgroundColor: ['#d97706', '#b45309', '#78350f', '#fbbf24', '#a8a29e'], // Amber variations
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right', labels: { boxWidth: 10, font: { size: 11 } } }
+                    }
+                }
+            });
+
+            // Density Chart (Bar)
+            const ctxDensity = document.getElementById('densityChart').getContext('2d');
+            densityChartInstance = new Chart(ctxDensity, {
+                type: 'bar',
+                data: {
+                    labels: caveLabels,
+                    datasets: [{
+                        label: '기록된 이야기 수',
+                        data: caveCounts,
+                        backgroundColor: '#a8a29e',
+                        hoverBackgroundColor: '#d97706',
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { stepSize: 1 } },
+                        x: { grid: { display: false } }
+                    },
+                    plugins: {
+                        legend: { display: false }
+                    }
+                }
+            });
+        }
+
+        // Initialize on Load
+        window.addEventListener('DOMContentLoaded', initApp);
+
+    </script>
+</body>
+</html>
