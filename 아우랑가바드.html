@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>아우랑가바드 석굴 탐험 가이드: 아잔타 & 엘로라</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Noto+Serif+KR:wght@400;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #fdfbf7; /* Warm paper tone */
+            color: #292524;
+        }
+        
+        h1, h2, h3, .serif {
+            font-family: 'Noto Serif KR', serif;
+        }
+
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+
+        .nav-active {
+            border-bottom: 3px solid #b45309;
+            color: #78350f;
+            font-weight: 700;
+        }
+
+        .cave-card {
+            transition: all 0.3s ease;
+        }
+        .cave-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Custom Scrollbar for side panels */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background: #d6d3d1;
+            border-radius: 3px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb:hover {
+            background: #a8a29e;
+        }
+    </style>
+    <!-- Chosen Palette: Earth & Stone - Warm neutrals (#fdfbf7, #e7e5e4) with Sandstone Orange (#b45309) and Deep Rock Grey (#292524) accents to mimic the aesthetic of the caves. -->
+    <!-- Application Structure Plan: The app is designed as an interactive museum guide. 
+        1. 'Hero & Intro': Sets the mood and context of Aurangabad. 
+        2. 'Chronology & Data': Uses Chart.js to visualize the timeline and religious composition, providing a high-level analytical view. 
+        3. 'Ajanta Explorer': A dedicated section with a schematic Canvas map allowing users to click 'cave points' on the horseshoe bend to reveal specific mural details. 
+        4. 'Ellora Explorer': Similar interactive structure but focusing on the vertical excavation and religious diversity, highlighting the Kailasa Temple. 
+        5. 'Travel Logistics': A practical grid layout for location and tips. 
+        This structure moves from abstract (history/data) to concrete (visual exploration) to practical (planning), mirroring a traveler's journey. -->
+    <!-- Visualization & Content Choices: 
+        - Timeline (Line Chart): To show the distinct construction phases of Ajanta vs. continuous evolution of Ellora. Goal: Change/Compare. 
+        - Composition (Doughnut Chart): To visualize the multi-religious nature of Ellora (Hindu, Buddhist, Jain). Goal: Inform/Organize.
+        - Interactive Schematics (HTML5 Canvas): Custom Javascript draws the "Horseshoe" shape of Ajanta and linear layout of Ellora. Users click dots to see cave info. Justification: Better than static images for engagement and avoids SVG restrictions. Goal: Location/Relationships. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="antialiased min-h-screen flex flex-col">
+
+    <!-- Header / Navigation -->
+    <header class="sticky top-0 z-50 bg-[#fdfbf7]/90 backdrop-blur-md border-b border-stone-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer" onclick="navigate('home')">
+                    <span class="text-3xl">🏛️</span>
+                    <h1 class="text-xl font-bold text-stone-800 tracking-tight">아우랑가바드 석굴 기행</h1>
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <button onclick="navigate('home')" id="nav-home" class="nav-active px-3 py-2 text-sm font-medium text-stone-600 hover:text-stone-900">홈 / 개요</button>
+                    <button onclick="navigate('ajanta')" id="nav-ajanta" class="px-3 py-2 text-sm font-medium text-stone-600 hover:text-stone-900">아잔타 석굴</button>
+                    <button onclick="navigate('ellora')" id="nav-ellora" class="px-3 py-2 text-sm font-medium text-stone-600 hover:text-stone-900">엘로라 석굴</button>
+                    <button onclick="navigate('guide')" id="nav-guide" class="px-3 py-2 text-sm font-medium text-stone-600 hover:text-stone-900">여행 정보</button>
+                </nav>
+                <!-- Mobile menu button -->
+                <div class="md:hidden flex items-center">
+                    <button id="mobile-menu-btn" class="text-stone-600 hover:text-stone-900 focus:outline-none">
+                        <span class="text-2xl">☰</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        <!-- Mobile Nav Panel -->
+        <div id="mobile-menu" class="hidden md:hidden bg-[#fdfbf7] border-b border-stone-200">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <button onclick="navigate('home')" class="block w-full text-left px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-100">홈 / 개요</button>
+                <button onclick="navigate('ajanta')" class="block w-full text-left px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-100">아잔타 석굴</button>
+                <button onclick="navigate('ellora')" class="block w-full text-left px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-100">엘로라 석굴</button>
+                <button onclick="navigate('guide')" class="block w-full text-left px-3 py-2 text-base font-medium text-stone-700 hover:bg-stone-100">여행 정보</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow">
+        
+        <!-- SECTION: HOME / OVERVIEW -->
+        <section id="view-home" class="animate-fade-in py-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
+                <!-- Intro -->
+                <div class="text-center mb-16">
+                    <h2 class="text-4xl md:text-5xl font-bold text-stone-800 mb-6 serif">돌 속에 핀 천년의 역사</h2>
+                    <p class="text-xl text-stone-600 max-w-3xl mx-auto leading-relaxed">
+                        인도 데칸 고원의 황량한 바위산, 아우랑가바드. 그곳에는 인간의 신심(信心)이 만들어낸 기적이 숨어 있습니다.
+                        <br><br>
+                        <strong>아잔타(Ajanta)</strong>는 불교 회화의 정점을, <strong>엘로라(Ellora)</strong>는 종교적 관용과 조각의 극치를 보여줍니다.
+                        이 인터랙티브 가이드는 두 유네스코 세계문화유산의 역사적 흐름과 예술적 가치를 심층적으로 안내합니다.
+                    </p>
+                </div>
+
+                <!-- Dashboard Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 mb-12">
+                    
+                    <!-- Chart 1: Timeline -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                        <div class="mb-4 border-b border-stone-100 pb-2">
+                            <h3 class="text-lg font-bold text-stone-800">⏳ 시대적 흐름: 조성 시기 비교</h3>
+                            <p class="text-sm text-stone-500">아잔타는 두 시기에 걸쳐, 엘로라는 후대에 집중적으로 조성되었습니다.</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Chart 2: Religion Composition -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                        <div class="mb-4 border-b border-stone-100 pb-2">
+                            <h3 class="text-lg font-bold text-stone-800">🕉️ 엘로라의 종교적 구성</h3>
+                            <p class="text-sm text-stone-500">단일 종교인 아잔타와 달리 엘로라는 세 종교가 공존합니다.</p>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="religionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Quick Comparison Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-stone-100 p-8 rounded-lg cursor-pointer hover:bg-stone-200 transition" onclick="navigate('ajanta')">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-2xl font-bold serif text-[#b45309]">아잔타 석굴</h3>
+                            <span class="text-3xl">🖌️</span>
+                        </div>
+                        <ul class="space-y-2 text-stone-700">
+                            <li>• <strong>특징:</strong> 불교 회화(프레스코)의 정수</li>
+                            <li>• <strong>형태:</strong> 말굽 모양의 협곡</li>
+                            <li>• <strong>시기:</strong> 기원전 2세기 ~ 기원후 5세기</li>
+                            <li>• <strong>분위기:</strong> 은둔, 명상, 신비</li>
+                        </ul>
+                        <div class="mt-4 text-[#b45309] font-bold text-sm text-right">상세 탐험하기 →</div>
+                    </div>
+
+                    <div class="bg-stone-100 p-8 rounded-lg cursor-pointer hover:bg-stone-200 transition" onclick="navigate('ellora')">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-2xl font-bold serif text-[#b45309]">엘로라 석굴</h3>
+                            <span class="text-3xl">🗿</span>
+                        </div>
+                        <ul class="space-y-2 text-stone-700">
+                            <li>• <strong>특징:</strong> 압도적인 건축과 조각</li>
+                            <li>• <strong>형태:</strong> 2km에 달하는 수직 절벽</li>
+                            <li>• <strong>시기:</strong> 6세기 ~ 10세기</li>
+                            <li>• <strong>분위기:</strong> 웅장, 화합, 역동</li>
+                        </ul>
+                        <div class="mt-4 text-[#b45309] font-bold text-sm text-right">상세 탐험하기 →</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: AJANTA -->
+        <section id="view-ajanta" class="hidden py-10 bg-[#fffbf2]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-10">
+                    <h2 class="text-3xl font-bold serif text-stone-800 mb-4">아잔타: 어둠 속의 빛나는 붓터치</h2>
+                    <p class="text-stone-600 max-w-4xl">
+                        와고라(Waghora) 강이 굽이치는 말굽 모양의 협곡 절벽에 자리한 30여 개의 불교 석굴입니다. 
+                        아잔타의 핵심은 <strong>벽화</strong>입니다. 어두운 석굴 내부를 밝히기 위해 반사판을 이용해 빛을 끌어들여 그림을 그렸으며, 
+                        고대 인도의 생활상, 복식, 그리고 부처의 전생담(Jataka Tales)이 생생하게 기록되어 있습니다.
+                        아래의 <strong>지도상 포인트</strong>를 클릭하여 주요 석굴을 확인하세요.
+                    </p>
+                </div>
+
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <!-- Interactive Schematic Map -->
+                    <div class="lg:w-2/3 bg-white rounded-xl shadow-lg border border-stone-200 p-4 relative">
+                        <div class="absolute top-4 left-4 bg-white/80 p-2 rounded text-xs text-stone-500 z-10">
+                            🖱️ 번호를 클릭하여 상세 정보를 확인하세요
+                        </div>
+                        <div class="chart-container" style="height: 500px; max-height: 600px;">
+                            <canvas id="ajantaMapCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Details Panel -->
+                    <div class="lg:w-1/3 bg-white rounded-xl shadow-lg border border-stone-200 p-6 flex flex-col h-[600px]">
+                        <div id="ajanta-detail-content" class="h-full overflow-y-auto custom-scroll pr-2">
+                            <!-- Dynamic Content fills here -->
+                            <div class="text-center mt-20 text-stone-400">
+                                <span class="text-4xl block mb-4">🗺️</span>
+                                <p>왼쪽 지도에서 석굴 번호를 클릭하세요.</p>
+                                <p class="text-sm mt-2">추천 석굴: 1, 2, 9, 10, 16, 17, 26번</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: ELLORA -->
+        <section id="view-ellora" class="hidden py-10 bg-[#f5f5f4]">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-10">
+                    <h2 class="text-3xl font-bold serif text-stone-800 mb-4">엘로라: 바위를 깎아 만든 신들의 거처</h2>
+                    <p class="text-stone-600 max-w-4xl">
+                        아잔타가 '회화'라면 엘로라는 '조각과 건축'입니다. 
+                        샤라나드리(Charanandri) 언덕의 수직 절벽을 깎아 만들었으며, 불교(1~12번), 힌두교(13~29번), 자이나교(30~34번) 석굴이 나란히 존재하여 인도의 종교적 관용을 상징합니다.
+                        특히 <strong>카일라사 사원(16번)</strong>은 세계 건축사의 미스터리이자 기적입니다.
+                    </p>
+                </div>
+
+                <!-- Feature Highlight: Kailasa Temple -->
+                <div class="bg-stone-800 text-stone-100 rounded-xl p-8 mb-10 shadow-xl">
+                    <div class="flex flex-col md:flex-row items-center gap-8">
+                        <div class="md:w-1/2">
+                            <h3 class="text-2xl font-bold text-[#fbbf24] mb-2">★ 16번 석굴: 카일라사 사원 (Kailasa Temple)</h3>
+                            <p class="text-stone-300 mb-4">
+                                "쌓아 올린 것이 아니라, 위에서부터 깎아 내려갔습니다."
+                            </p>
+                            <p class="text-sm text-stone-400 leading-relaxed mb-4">
+                                단 하나의 거대한 바위산을 위에서 아래로 깎아내려 만든 세계 최대의 단일 암석 사원입니다. 
+                                시바 신이 거주하는 카일라스 산을 형상화했습니다. 약 100년에 걸쳐 20만 톤 이상의 암석을 파냈습니다. 
+                                기둥, 조각상, 발코니, 배수 시설까지 모두 하나의 돌덩어리입니다.
+                            </p>
+                            <div class="bg-stone-700/50 p-3 rounded border-l-4 border-[#fbbf24] text-xs">
+                                💡 <strong>관람 포인트:</strong> 중앙 사원을 떠받치고 있는 거대한 코끼리 조각상들과 벽면의 '라마야나' 서사시 부조를 놓치지 마세요.
+                            </div>
+                        </div>
+                        <div class="md:w-1/2 grid grid-cols-2 gap-2 text-center text-xs text-stone-400">
+                             <div class="bg-stone-700 p-4 rounded aspect-square flex flex-col justify-center items-center">
+                                <span class="text-3xl mb-2">📏</span>
+                                <span>높이 30m<br>너비 45m</span>
+                             </div>
+                             <div class="bg-stone-700 p-4 rounded aspect-square flex flex-col justify-center items-center">
+                                <span class="text-3xl mb-2">🔨</span>
+                                <span>공사기간<br>약 100년</span>
+                             </div>
+                             <div class="bg-stone-700 p-4 rounded aspect-square flex flex-col justify-center items-center">
+                                <span class="text-3xl mb-2">⛏️</span>
+                                <span>제거된 암석<br>200,000톤+</span>
+                             </div>
+                             <div class="bg-stone-700 p-4 rounded aspect-square flex flex-col justify-center items-center">
+                                <span class="text-3xl mb-2">🕉️</span>
+                                <span>헌정<br>시바 신</span>
+                             </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ellora Interactive List -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Nav/Filter -->
+                    <div class="lg:col-span-1 space-y-4">
+                        <h3 class="font-bold text-stone-700 border-b pb-2">종교별 구역 탐색</h3>
+                        <div class="space-y-2">
+                            <button onclick="filterEllora('buddhist')" class="w-full text-left p-4 rounded bg-white border-l-4 border-blue-400 hover:bg-blue-50 transition shadow-sm">
+                                <span class="font-bold text-stone-800">불교 석굴군 (1~12번)</span>
+                                <p class="text-xs text-stone-500 mt-1">초기 형태, 엄숙하고 소박함. 승원(Vihara) 중심.</p>
+                            </button>
+                            <button onclick="filterEllora('hindu')" class="w-full text-left p-4 rounded bg-white border-l-4 border-orange-500 hover:bg-orange-50 transition shadow-sm">
+                                <span class="font-bold text-stone-800">힌두교 석굴군 (13~29번)</span>
+                                <p class="text-xs text-stone-500 mt-1">역동적이고 화려함. 벽면 가득한 신화 조각.</p>
+                            </button>
+                            <button onclick="filterEllora('jain')" class="w-full text-left p-4 rounded bg-white border-l-4 border-green-500 hover:bg-green-50 transition shadow-sm">
+                                <span class="font-bold text-stone-800">자이나교 석굴군 (30~34번)</span>
+                                <p class="text-xs text-stone-500 mt-1">섬세하고 정교한 장식. 엄격한 수행 분위기.</p>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- List Container -->
+                    <div class="lg:col-span-2">
+                        <div id="ellora-list-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Dynamic JS will populate this -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION: GUIDE / PRACTICAL -->
+        <section id="view-guide" class="hidden py-10">
+             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                 <h2 class="text-3xl font-bold serif text-stone-800 mb-8">여행자를 위한 실전 가이드</h2>
+                 
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                     <!-- Location Schematic -->
+                     <div class="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                         <h3 class="font-bold text-lg mb-4 text-stone-700">📍 위치 및 거리 개요</h3>
+                         <div class="relative w-full h-64 bg-stone-50 rounded-lg border border-stone-200 flex items-center justify-center p-4">
+                             <!-- Simple HTML/CSS Schematic Map -->
+                             <div class="flex flex-col items-center w-full max-w-md relative h-full justify-between py-4">
+                                 
+                                 <!-- Ajanta Node -->
+                                 <div class="flex items-center w-full justify-end relative">
+                                     <div class="text-right mr-3">
+                                         <span class="block font-bold text-[#b45309]">아잔타 석굴</span>
+                                         <span class="text-xs text-stone-500">약 100km (2~3시간)</span>
+                                     </div>
+                                     <div class="w-4 h-4 rounded-full bg-[#b45309] border-2 border-white shadow"></div>
+                                 </div>
+
+                                 <!-- Connecting Line 1 -->
+                                 <div class="absolute right-[19px] top-[30px] w-0.5 h-[calc(50%-30px)] bg-stone-300 border-l border-dashed border-stone-400"></div>
+
+                                 <!-- Aurangabad Node -->
+                                 <div class="flex items-center w-full justify-center relative z-10">
+                                     <div class="w-32 bg-white px-3 py-1 rounded-full border border-stone-300 text-center shadow-sm">
+                                         <span class="block font-bold text-stone-800">아우랑가바드</span>
+                                         <span class="text-xs text-stone-500">(베이스캠프)</span>
+                                     </div>
+                                 </div>
+
+                                 <!-- Connecting Line 2 -->
+                                 <div class="absolute left-[30px] bottom-[30px] w-[calc(50%-40px)] h-0.5 bg-stone-300 border-t border-dashed border-stone-400"></div>
+                                 <!-- Vertical connect for Ellora from center -->
+                                 <div class="absolute left-[30px] top-[50%] h-[calc(50%-30px)] w-0.5 bg-stone-300 border-l border-dashed border-stone-400"></div>
+
+                                 <!-- Ellora Node -->
+                                 <div class="flex items-center w-full justify-start relative mt-auto">
+                                     <div class="w-4 h-4 rounded-full bg-[#b45309] border-2 border-white shadow"></div>
+                                     <div class="text-left ml-3">
+                                         <span class="block font-bold text-[#b45309]">엘로라 석굴</span>
+                                         <span class="text-xs text-stone-500">약 30km (1시간)</span>
+                                     </div>
+                                 </div>
+                             </div>
+                         </div>
+                     </div>
+
+                     <!-- Tips List -->
+                     <div class="space-y-4">
+                         <div class="bg-amber-50 border-l-4 border-amber-400 p-4 rounded">
+                             <h4 class="font-bold text-amber-800">📅 휴관일 주의</h4>
+                             <p class="text-sm text-stone-700 mt-1">
+                                 <strong>아잔타:</strong> 매주 월요일 휴관<br>
+                                 <strong>엘로라:</strong> 매주 화요일 휴관
+                             </p>
+                         </div>
+                         <div class="bg-white border border-stone-200 p-4 rounded shadow-sm">
+                             <h4 class="font-bold text-stone-700">🔦 준비물</h4>
+                             <p class="text-sm text-stone-600 mt-1">
+                                 석굴 내부는 매우 어둡습니다. 스마트폰 플래시보다는 <strong>소형 손전등</strong>을 준비하면 벽화를 훨씬 선명하게 감상할 수 있습니다. 걷기 편한 신발은 필수입니다.
+                             </p>
+                         </div>
+                         <div class="bg-white border border-stone-200 p-4 rounded shadow-sm">
+                             <h4 class="font-bold text-stone-700">🕒 추천 일정</h4>
+                             <p class="text-sm text-stone-600 mt-1">
+                                 <strong>1일차:</strong> 아잔타 (이동 시간이 길어 하루 전체 소요)<br>
+                                 <strong>2일차:</strong> 엘로라 (오전) + 다울라타바드 요새 or 비비 카 마크바라 (오후)
+                             </p>
+                         </div>
+                     </div>
+                 </div>
+             </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-stone-800 text-stone-400 py-6 text-center text-sm">
+        <p>Historic Guide to Aurangabad Caves | Created for Travelers</p>
+    </footer>
+
+    <!-- Logic Script -->
+    <script>
+        // --- DATA STORE ---
+        const ajantaCaves = {
+            1: { title: "1번 석굴 (Vihara)", desc: "아잔타 회화의 백미. '연화수 보살도(Padmapani)'가 있는 곳입니다. 기원후 5세기경 조성되었으며, 완벽하게 보존된 현관 기둥과 화려한 천장 장식이 특징입니다. 보살의 그윽한 눈빛을 놓치지 마세요." },
+            2: { title: "2번 석굴 (Vihara)", desc: "1번 석굴과 유사하지만 천장 장식이 더욱 정교합니다. '천 명의 부처'가 그려진 벽화와 화려한 기하학적 문양이 압권입니다." },
+            9: { title: "9번 석굴 (Chaitya)", desc: "가장 오래된 석굴 중 하나(기원전 1세기). 말굽 모양의 창(Chaitya window)을 통해 들어오는 빛이 스투파(불탑)를 비추는 광경이 신비롭습니다." },
+            10: { title: "10번 석굴 (Chaitya)", desc: "아잔타에서 가장 오래된 석굴(기원전 2세기). 1819년 존 스미스가 호랑이 사냥 중 처음 발견한 곳으로, 기둥에 그의 낙서가 남아있습니다. 거대한 예배당 형태입니다." },
+            16: { title: "16번 석굴 (Vihara)", desc: "아잔타 전체를 조망하기 좋은 위치. '죽어가는 공주' 벽화가 유명하며, 웅장한 코끼리 조각이 입구를 지키고 있습니다." },
+            17: { title: "17번 석굴 (Vihara)", desc: "보존 상태가 가장 좋은 벽화들이 모여 있습니다. 부처의 전생담인 자타카 이야기가 파노라마처럼 펼쳐집니다." },
+            19: { title: "19번 석굴 (Chaitya)", desc: "후기 차이티야 양식의 정수. 전면부의 조각이 매우 화려하며, 입구의 수호신상이 인상적입니다." },
+            26: { title: "26번 석굴 (Chaitya)", desc: "거대한 '와불상(열반에 드는 부처)'이 있는 곳. 섬세한 조각과 거대한 규모가 압도적입니다. 조명 시설이 잘 되어 있어 감상하기 좋습니다." }
+        };
+
+        const elloraCaves = [
+            { id: 5, type: 'buddhist', title: '5번 석굴 (Maharwada)', desc: '엘로라에서 가장 큰 비하라(승원). 벤치 형태의 돌출부가 있어 승려들이 공부하던 강의실로 추정됩니다.' },
+            { id: 10, type: 'buddhist', title: '10번 석굴 (Vishvakarma)', desc: "'목수의 동굴'이라 불립니다. 천장이 마치 나무 갈비뼈처럼 조각되어 있어 목조 건축을 모방했음을 알 수 있습니다. 아름다운 차이티야 홀입니다." },
+            { id: 12, type: 'buddhist', title: '12번 석굴 (Tin Thal)', desc: '3층 구조의 거대한 수도원. 마치 현대의 아파트처럼 층층이 방이 나뉘어 있습니다.' },
+            { id: 15, type: 'hindu', title: '15번 석굴 (Dashavatara)', desc: '비슈누 신의 10가지 화신(아바타)이 조각되어 있습니다. 불교 석굴에서 힌두 석굴로 개조된 흔적이 보입니다.' },
+            { id: 16, type: 'hindu', title: '★ 16번 석굴 (Kailasa Temple)', desc: '엘로라의 상징. 산 하나를 통째로 깎아 만든 기적의 사원. 시바 신의 거처를 지상에 재현했습니다.' },
+            { id: 21, type: 'hindu', title: '21번 석굴 (Rameshwara)', desc: '갠지스 강과 야무나 강의 여신상이 입구에 조각되어 있습니다. 시바와 파르바티의 결혼 장면 부조가 유명합니다.' },
+            { id: 29, type: 'hindu', title: '29번 석굴 (Dhumar Lena)', desc: '뭄바이 엘레판타 석굴과 유사한 십자형 구조. 거대한 시바 상들이 내부를 압도합니다.' },
+            { id: 32, type: 'jain', title: '32번 석굴 (Indra Sabha)', desc: '자이나교 석굴 중 가장 아름답습니다. 2층 구조로 되어 있으며, 천장의 연꽃 장식과 코끼리 조각이 섬세합니다.' }
+        ];
+
+        // --- NAVIGATION STATE ---
+        let currentView = 'home';
+
+        function navigate(viewId) {
+            // Update UI State
+            document.querySelectorAll('section').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`view-${viewId}`).classList.remove('hidden');
+            
+            // Update Nav Classes
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('nav-active', 'text-stone-900'));
+            document.querySelectorAll('nav button').forEach(btn => btn.classList.add('text-stone-600'));
+            
+            const activeBtn = document.getElementById(`nav-${viewId}`);
+            if(activeBtn) {
+                activeBtn.classList.add('nav-active', 'text-stone-900');
+                activeBtn.classList.remove('text-stone-600');
+            }
+
+            currentView = viewId;
+            window.scrollTo(0, 0);
+
+            // Re-render canvases if necessary (sizing fix)
+            if(viewId === 'home') initCharts();
+            if(viewId === 'ajanta') drawAjantaMap();
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+        document.getElementById('mobile-menu-btn').addEventListener('click', toggleMobileMenu);
+
+        // --- CHART.JS VISUALIZATIONS ---
+        let timelineChartInstance = null;
+        let religionChartInstance = null;
+
+        function initCharts() {
+            if(timelineChartInstance) return; // Prevent redraw if exists
+
+            // 1. Timeline Chart
+            const ctx1 = document.getElementById('timelineChart').getContext('2d');
+            timelineChartInstance = new Chart(ctx1, {
+                type: 'bar',
+                data: {
+                    labels: ['아잔타 1기 (불교)', '아잔타 2기 (불교)', '엘로라 (불교/힌두/자이나)'],
+                    datasets: [{
+                        label: '활동 기간 (세기)',
+                        data: [[-200, 100], [400, 480], [600, 1000]], // Span format for floating bars
+                        backgroundColor: [
+                            'rgba(180, 83, 9, 0.6)', // Ajanta 1
+                            'rgba(217, 119, 6, 0.6)', // Ajanta 2
+                            'rgba(68, 64, 60, 0.6)'   // Ellora
+                        ],
+                        borderColor: [
+                            'rgb(180, 83, 9)',
+                            'rgb(217, 119, 6)',
+                            'rgb(68, 64, 60)'
+                        ],
+                        borderWidth: 1,
+                        barPercentage: 0.5
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const v = context.raw;
+                                    const start = v[0] < 0 ? `기원전 ${Math.abs(v[0]/100)}세기` : `${v[0]/100}세기`;
+                                    const end = v[1] < 0 ? `기원전 ${Math.abs(v[1]/100)}세기` : `${v[1]/100}세기`;
+                                    return `${start} ~ ${end}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            min: -300,
+                            max: 1100,
+                            ticks: {
+                                callback: function(value) {
+                                    return value < 0 ? `BC ${Math.abs(value)}` : `AD ${value}`;
+                                }
+                            },
+                            grid: { color: '#e7e5e4' }
+                        },
+                        y: { grid: { display: false } }
+                    }
+                }
+            });
+
+            // 2. Religion Composition Chart
+            const ctx2 = document.getElementById('religionChart').getContext('2d');
+            religionChartInstance = new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['불교 (12개)', '힌두교 (17개)', '자이나교 (5개)'],
+                    datasets: [{
+                        data: [12, 17, 5],
+                        backgroundColor: [
+                            '#60a5fa', // Blue (Buddhist)
+                            '#f97316', // Orange (Hindu)
+                            '#22c55e'  // Green (Jain)
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // --- AJANTA INTERACTIVE MAP (CANVAS) ---
+        function drawAjantaMap() {
+            const canvas = document.getElementById('ajantaMapCanvas');
+            const parent = canvas.parentElement;
+            canvas.width = parent.clientWidth;
+            canvas.height = parent.clientHeight;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            // Clear
+            ctx.clearRect(0, 0, w, h);
+
+            // Draw River/Gorge (Horseshoe Curve)
+            ctx.beginPath();
+            ctx.strokeStyle = '#a8a29e';
+            ctx.lineWidth = 40;
+            ctx.lineCap = 'round';
+            // Simple horseshoe curve logic
+            const cx = w * 0.5;
+            const cy = h * 0.4;
+            const r = Math.min(w, h) * 0.35;
+            
+            ctx.arc(cx, cy, r, 0.2 * Math.PI, 0.8 * Math.PI, false); 
+            ctx.stroke();
+
+            // River inside
+            ctx.beginPath();
+            ctx.strokeStyle = '#bae6fd'; // Light blue water
+            ctx.lineWidth = 15;
+            ctx.arc(cx, cy, r, 0.2 * Math.PI, 0.8 * Math.PI, false);
+            ctx.stroke();
+
+            // Draw Cave Points
+            // We map cave numbers to angles on the arc
+            const cavesToDraw = [1, 2, 4, 9, 10, 16, 17, 19, 26];
+            const points = [];
+
+            cavesToDraw.forEach((caveNum, index) => {
+                // Distribute points along the arc
+                // Start angle 0.2PI, End 0.8PI. Map cave number to this range roughly.
+                // This is schematic, not perfect GPS.
+                // 1 is at the end (right), 26 is at the start (left) in reality? 
+                // Let's approximate: 1 is near the end of the curve usually visited first.
+                // Let's map 1->28 along the curve.
+                
+                const totalCaves = 30;
+                const percent = (caveNum) / totalCaves; 
+                // Adjust angles to fit visual curve
+                const startAngle = 0.8 * Math.PI;
+                const endAngle = 0.2 * Math.PI;
+                const angle = startAngle - (percent * (startAngle - endAngle));
+
+                // Position on the outer rim of the curve
+                const px = cx + (r + 30) * Math.cos(angle);
+                const py = cy + (r + 30) * Math.sin(angle);
+
+                // Draw connection line
+                ctx.beginPath();
+                ctx.moveTo(cx + r * Math.cos(angle), cy + r * Math.sin(angle));
+                ctx.lineTo(px, py);
+                ctx.strokeStyle = '#78350f';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Draw Point
+                ctx.beginPath();
+                ctx.arc(px, py, 12, 0, 2 * Math.PI);
+                ctx.fillStyle = '#b45309';
+                ctx.fill();
+                ctx.fillStyle = 'white';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(caveNum, px, py);
+
+                // Store for interaction
+                points.push({x: px, y: py, r: 12, id: caveNum});
+            });
+
+            // Handle Click
+            canvas.onclick = function(e) {
+                const rect = canvas.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const y = e.clientY - rect.top;
+
+                let clicked = false;
+                points.forEach(p => {
+                    const dx = x - p.x;
+                    const dy = y - p.y;
+                    if(dx*dx + dy*dy <= p.r*p.r * 2) { // Allow slight margin
+                        showAjantaDetail(p.id);
+                        clicked = true;
+                    }
+                });
+            };
+        }
+
+        function showAjantaDetail(id) {
+            const container = document.getElementById('ajanta-detail-content');
+            const data = ajantaCaves[id] || { title: `${id}번 석굴`, desc: "상세 정보가 준비 중입니다." };
+            
+            container.innerHTML = `
+                <div class="animate-fade-in">
+                    <div class="flex items-center justify-between mb-4 border-b pb-2 border-stone-100">
+                        <span class="text-3xl bg-amber-100 rounded-full w-12 h-12 flex items-center justify-center text-amber-800 font-bold">${id}</span>
+                        <span class="text-xs text-stone-400">아잔타 석굴군</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-stone-800 mb-4 serif">${data.title}</h3>
+                    <p class="text-stone-600 leading-relaxed text-lg">${data.desc}</p>
+                    <div class="mt-6 p-4 bg-stone-50 rounded text-sm text-stone-500">
+                        💡 팁: 벽화 보호를 위해 플래시 사용이 금지되어 있습니다. 눈으로만 감상해주세요.
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- ELLORA FILTERING & RENDERING ---
+        function renderElloraList(filterType = 'all') {
+            const container = document.getElementById('ellora-list-container');
+            container.innerHTML = '';
+
+            elloraCaves.forEach(cave => {
+                if(filterType !== 'all' && cave.type !== filterType) return;
+
+                let borderClass = '';
+                let icon = '';
+                if(cave.type === 'buddhist') { borderClass = 'border-blue-200'; icon = '☸️'; }
+                if(cave.type === 'hindu') { borderClass = 'border-orange-200'; icon = '🕉️'; }
+                if(cave.type === 'jain') { borderClass = 'border-green-200'; icon = '✋'; }
+
+                const card = document.createElement('div');
+                card.className = `cave-card bg-white p-5 rounded-lg border ${borderClass} shadow-sm`;
+                card.innerHTML = `
+                    <div class="flex justify-between items-start mb-2">
+                        <h4 class="font-bold text-stone-800">${cave.title}</h4>
+                        <span>${icon}</span>
+                    </div>
+                    <p class="text-sm text-stone-600">${cave.desc}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filterEllora(type) {
+            renderElloraList(type);
+        }
+
+        // Initialize
+        window.onload = function() {
+            initCharts();
+            renderElloraList('all'); // Load all Ellora caves initially
+            
+            // Resize listener for canvas
+            window.addEventListener('resize', () => {
+                if(currentView === 'home') {
+                    timelineChartInstance.resize();
+                    religionChartInstance.resize();
+                }
+                if(currentView === 'ajanta') {
+                    drawAjantaMap();
+                }
+            });
+        };
+
+    </script>
+</body>
+</html>
